@@ -1,0 +1,5 @@
+The plugin should:
+- Include a list/table with all source and related options
+- Schedule and check for source updates to update EPG database
+- List users with access to download and count downloads by users
+- 
