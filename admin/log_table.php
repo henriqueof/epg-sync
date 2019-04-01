@@ -4,18 +4,14 @@ if (!class_exists('WP_List_Table')) {
     require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
 }
 
-class Subscribers_List_Table extends WP_List_Table
+class Log_List_Table extends WP_List_Table
 {
-    /**
-    * Constructor, we override the parent to pass our own arguments
-    * We usually focus on three parameters: singular and plural labels, as well as whether the class supports AJAX.
-    */
     public function __construct()
     {
         parent::__construct(
             array(
-            'singular'  => 'source',
-            'plural'    => 'sources',
+            'singular'  => 'log',
+            'plural'    => 'logs',
             'ajax'      => false
             )
         );
@@ -26,56 +22,25 @@ class Subscribers_List_Table extends WP_List_Table
         return $item[$column_name];
     }
 
-    public function column_user_login($item)
-    {
-        // Build row actions
-        $actions = array(
-            'edit'      => sprintf('<a href="?page=%s&action=%s&source=%s">Edit</a>', $_REQUEST['page'], 'edit', $item['id']),
-            'cancel'    => sprintf('<a href="?page=%s&action=%s&source=%s">Cancel</a>', $_REQUEST['page'], 'cancel', $item['id']),
-        );
-
-        // Return the title contents
-        return sprintf(
-            '%1$s <span style="color:silver">(id:%2$s)</span>%3$s',
-            /*$1%s*/ $item['user_login'],
-            /*$2%s*/ $item['ID'],
-            /*$3%s*/ $this->row_actions($actions)
-        );
-    }
-    
     public function get_columns()
     {
         return $columns = array(
-            'user_login'    => 'Username',
-            'display_name'  => 'Name',
-            'user_email'    => 'E-mail',
             'start_date'    => 'Start',
             'end_date'      => 'End',
-            'status'        => 'Status',
-            'price'         => 'Price'
+            'log'           => 'Log',
+            'result'        => 'Result'
         );
-    }
-
-    public function get_sortable_columns()
-    {
-        $sortable_columns = array(
-            'start_date'    => array('start_date', false),
-            'end_date'      => array('end_date', false),
-            'status'        => array('status', false)
-        );
-
-        return $sortable_columns;
     }
 
     private function table_data()
     {
         global $wpdb;
-        $table_name = $wpdb->prefix . 'epg_subscrition';
+        $table_name = $wpdb->prefix . 'epg_wg_log';
         $data = array();
         
-        $data = $wpdb->get_results("SELECT * FROM wp_users LEFT JOIN $table_name ON wp_users.ID = $table_name.user_id", 'ARRAY_A');
+        $wk_post = $wpdb->get_results("SELECT * FROM $table_name", 'ARRAY_A');
 
-        return $data;
+        return $wk_post;
     }
 
     public function prepare_items()

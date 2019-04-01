@@ -4,12 +4,8 @@ if (!class_exists('WP_List_Table')) {
     require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
 }
 
-class Subscribers_List_Table extends WP_List_Table
+class Programme_List_Table extends WP_List_Table
 {
-    /**
-    * Constructor, we override the parent to pass our own arguments
-    * We usually focus on three parameters: singular and plural labels, as well as whether the class supports AJAX.
-    */
     public function __construct()
     {
         parent::__construct(
@@ -26,56 +22,74 @@ class Subscribers_List_Table extends WP_List_Table
         return $item[$column_name];
     }
 
-    public function column_user_login($item)
-    {
-        // Build row actions
-        $actions = array(
-            'edit'      => sprintf('<a href="?page=%s&action=%s&source=%s">Edit</a>', $_REQUEST['page'], 'edit', $item['id']),
-            'cancel'    => sprintf('<a href="?page=%s&action=%s&source=%s">Cancel</a>', $_REQUEST['page'], 'cancel', $item['id']),
-        );
-
-        // Return the title contents
-        return sprintf(
-            '%1$s <span style="color:silver">(id:%2$s)</span>%3$s',
-            /*$1%s*/ $item['user_login'],
-            /*$2%s*/ $item['ID'],
-            /*$3%s*/ $this->row_actions($actions)
-        );
-    }
-    
     public function get_columns()
     {
         return $columns = array(
-            'user_login'    => 'Username',
-            'display_name'  => 'Name',
-            'user_email'    => 'E-mail',
-            'start_date'    => 'Start',
-            'end_date'      => 'End',
-            'status'        => 'Status',
-            'price'         => 'Price'
+            'cb'                => '<input type="checkbox" />',
+            'source_url'        => 'URL',
+            'country_name'      => 'Country',
+            'source_status'     => 'Status',
+            'source_registered' => 'Created'
         );
     }
 
     public function get_sortable_columns()
     {
         $sortable_columns = array(
-            'start_date'    => array('start_date', false),
-            'end_date'      => array('end_date', false),
-            'status'        => array('status', false)
+            'source_name'       => array('source_name', false),
+            'country_name'      => array('country_name', false),
+            'source_registered' => array('source_registered', false)
         );
-
         return $sortable_columns;
     }
 
     private function table_data()
     {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'epg_subscrition';
-        $data = array();
-        
-        $data = $wpdb->get_results("SELECT * FROM wp_users LEFT JOIN $table_name ON wp_users.ID = $table_name.user_id", 'ARRAY_A');
+        // Channel has many programme
+        foreach ($xml->children() as $child) {
+            switch ($child->getName()) {
+                case 'channel':
+                    $this->read_channel($child);
+                break;
+                case 'programme':
+                    $this->read_programme($child);
+                break;
+            }
+        }
 
-        return $data;
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'epg_data';
+        $data = array();
+
+        /*
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'epg_sources';
+        $data = array();
+
+        if (isset($_GET['s'])) {
+            $search=$_GET['s'];
+            $search = trim($search);
+            $wk_post = $wpdb->get_results("SELECT * FROM $table_name WHERE source_name LIKE '%$search%'", 'ARRAY_A');
+        } else {
+            $wk_post = $wpdb->get_results("SELECT * FROM $table_name", 'ARRAY_A');
+        }
+        */
+
+        // ----
+        $base_dir = '/home/henriqueof/.wg++/siteini.pack';
+        $countries = array_diff(scandir($base_dir), array('..', '.'));
+
+        foreach ($countries as $country) {
+            if (is_dir($base_dir . DIRECTORY_SEPARATOR . $country)) {
+                $sources = preg_grep('~\.(ini)$~', scandir($base_dir . DIRECTORY_SEPARATOR  . $country));
+
+                foreach ($sources as $source) {
+                    $wk_post[] = array('id' => 1, 'source_url' => substr($source, 0, -4), 'country_name' => $country, 'source_status' => 1, 'source_registered' => '');
+                }
+            }
+        }
+
+        return $wk_post;
     }
 
     public function prepare_items()
@@ -83,10 +97,15 @@ class Subscribers_List_Table extends WP_List_Table
         global $wpdb;
  
         $columns = $this->get_columns();
+        $sortable = $this->get_sortable_columns();
         $hidden = array();
+
+        $this->process_bulk_action();
  
         $data = $this->table_data();
         $totalitems = count($data);
+
+        $user = get_current_user_id();
 
         $screen = get_current_screen();
         $option = $screen->get_option('per_page', 'option');

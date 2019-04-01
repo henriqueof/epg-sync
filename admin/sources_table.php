@@ -21,16 +21,6 @@ class Sources_List_Table extends WP_List_Table
         );
     }
 
-    public function extra_tablenav($which)
-    {
-        if ($which == "top") {
-            echo "Hello, I'm before the table";
-        }
-        if ($which == "bottom") {
-            echo "Hi, I'm after the table";
-        }
-    }
-
     public function column_cb($item)
     {
         return sprintf(
